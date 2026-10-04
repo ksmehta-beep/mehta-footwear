@@ -1,0 +1,17 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum Role { CUSTOMER ADMIN }
+enum PaymentStatus { PENDING AUTHORIZED CAPTURED FAILED REFUNDED }
+enum OrderStatus { ORDER_PLACED PAYMENT_CONFIRMED PROCESSING PACKED SHIPPED OUT_FOR_DELIVERY DELIVERED CANCELLED RETURNED }
+model User { id String @id @default(cuid()) name String email String @unique phone String? passwordHash String role Role @default(CUSTOMER) createdAt DateTime @default(now()) orders Order[] reviews Review[] }
+model Category { id String @id @default(cuid()) name String @unique slug String @unique products Product[] createdAt DateTime @default(now()) }
+model Product { id String @id @default(cuid()) name String slug String @unique description String price Int compareAtPrice Int? brand String sku String @unique categoryId String category Category @relation(fields:[categoryId],references:[id]) rating Float @default(0) reviewCount Int @default(0) active Boolean @default(true) images ProductImage[] variants ProductVariant[] reviews Review[] createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model ProductImage { id String @id @default(cuid()) url String alt String? sort Int @default(0) productId String product Product @relation(fields:[productId],references:[id],onDelete:Cascade) }
+model ProductVariant { id String @id @default(cuid()) size String stock Int @default(0) productId String product Product @relation(fields:[productId],references:[id],onDelete:Cascade) @@unique([productId,size]) }
+model Coupon { id String @id @default(cuid()) code String @unique type String value Int minOrder Int @default(0) active Boolean @default(true) expiresAt DateTime? }
+model Order { id String @id @default(cuid()) orderNumber String @unique userId String? user User? @relation(fields:[userId],references:[id]) status OrderStatus @default(ORDER_PLACED) paymentStatus PaymentStatus @default(PENDING) subtotal Int shipping Int discount Int total Int customerName String customerPhone String customerEmail String? addressLine1 String addressLine2 String? city String state String pincode String items OrderItem[] payment Payment? shipment Shipment? createdAt DateTime @default(now()) updatedAt DateTime @updatedAt }
+model OrderItem { id String @id @default(cuid()) orderId String order Order @relation(fields:[orderId],references:[id],onDelete:Cascade) productId String product Product @relation(fields:[productId],references:[id]) name String size String quantity Int unitPrice Int }
+model Payment { id String @id @default(cuid()) orderId String @unique order Order @relation(fields:[orderId],references:[id],onDelete:Cascade) provider String providerOrderId String? providerPaymentId String? status PaymentStatus amount Int signature String? rawJson Json? createdAt DateTime @default(now()) }
+model Shipment { id String @id @default(cuid()) orderId String @unique order Order @relation(fields:[orderId],references:[id],onDelete:Cascade) provider String? providerOrderId String? shipmentId String? awb String? courier String? labelUrl String? trackingUrl String? trackingStatus String? rawJson Json? updatedAt DateTime @updatedAt }
+model Review { id String @id @default(cuid()) productId String product Product @relation(fields:[productId],references:[id],onDelete:Cascade) userId String user User @relation(fields:[userId],references:[id]) rating Int comment String createdAt DateTime @default(now()) }
